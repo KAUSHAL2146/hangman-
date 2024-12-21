@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Hangman Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
+        .game-container {
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            background-color: #f4f4f4;
+        }
+        .category-buttons button, .btn {
+            margin: 5px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .category-buttons button:hover, .btn:hover {
+            background-color: #45a049;
+        }
+        .word-display {
+            font-size: 24px;
+            letter-spacing: 5px;
+            margin: 20px 0;
+        }
+        .hangman {
+            font-size: 24px;
+            margin: 20px 0;
+            white-space: pre;
+            font-family: monospace;
+        }
+        .message {
+            font-size: 18px;
+            margin: 20px 0;
+        }
+        #timer {
+            font-size: 20px;
+            color: red;
+        }
+        .hint-buttons {
+            margin: 10px 0;
+        }
+        .hint-buttons button {
+            background-color: #007BFF;
+        }
+        .hint-buttons button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Enhanced Hangman Game</h1>
+
+    <!-- Category Selection -->
+    <div id="categoryContainer" class="game-container">
+        <h2>Choose a Category</h2>
+        <div class="category-buttons">
+            <button onclick="startGame('vegetables')">Vegetables</button>
+            <button onclick="startGame('cars')">Cars</button>
+            <button onclick="startGame('softDrinks')">Soft Drinks</button>
+            <button onclick="startGame('fastFood')">Fast Food</button>
+            <button onclick="startGame('tvShows')">TV Shows</button>
+        </div>
+    </div>
+
+    <!-- Game Area -->
+    <div id="gameContainer" class="game-container" style="display: none;">
+        <pre id="hangman" class="hangman">
+
+
+
+        </pre>
+        <div id="timer">Time Left: 55s</div>
+        <div id="hangmanState" class="hangman-state">Remaining Lives: 6</div>
+        <div id="wordDisplay" class="word-display">_ _ _ _ _</div>
+        <div class="hint-buttons">
+            <button onclick="showHint(1)">Hint 1 (Medium)</button>
+            <button onclick="showHint(2)">Hint 2 (Easier)</button>
+        </div>
+        <div id="hintMessage" class="message"></div>
+        <div id="message" class="message"></div>
+        <button id="restartButton" class="btn" style="display: none;" onclick="startNewGame()">Restart Game</button>
+    </div>
+
+    <script>
+        const categories = {
+            vegetables: [
+                { word: "potato", hints: ["Starchy vegetable", "Used for fries"] },
+                { word: "carrot", hints: ["Orange vegetable", "Rabbits love it"] },
+                { word: "onion", hints: ["Makes you cry", "Used in almost every dish"] },
+                { word: "spinach", hints: ["Green leafy vegetable", "Popeye loves it"] },
+                { word: "broccoli", hints: ["Green and tree-like", "Rich in fiber"] },
+                { word: "lettuce", hints: ["Green leafy", "Used in salads"] },
+                { word: "zucchini", hints: ["Green squash", "Also called courgette"] },
+                { word: "eggplant", hints: ["Purple vegetable", "Also called aubergine"] }
+            ],
+            cars: [
+                { word: "audi", hints: ["German car brand", "Four rings"] },
+                { word: "tesla", hints: ["Electric cars", "Elon Musk's company"] },
+                { word: "bmw", hints: ["German luxury brand", "Famous for sports cars"] },
+                { word: "volvo", hints: ["Swedish car brand", "Known for safety"] },
+                { word: "toyota", hints: ["Japanese brand", "Reliable cars"] },
+                { word: "chevrolet", hints: ["American car brand", "Famous for trucks"] },
+                { word: "porsche", hints: ["German luxury", "Known for sports cars"] },
+                { word: "ferrari", hints: ["Italian sports car", "Luxury and speed"] }
+            ],
+            softDrinks: [
+                { word: "coca cola", hints: ["Famous carbonated drink", "Red can"] },
+                { word: "pepsi", hints: ["Rival to Coca Cola", "Blue can"] },
+                { word: "maaza", hints: ["Mango drink", "Popular in India"] },
+                { word: "fanta", hints: ["Orange flavored drink", "Citrusy taste"] },
+                { word: "sprite", hints: ["Lemon-lime flavor", "Clear soda"] },
+                { word: "7up", hints: ["Lemon-lime flavored", "Famous in many countries"] },
+                { word: "mountain dew", hints: ["Citrus soda", "Known for its green color"] },
+                { word: "dr pepper", hints: ["Unusual flavor", "Made from 23 flavors"] }
+            ],
+            fastFood: [
+                { word: "burger", hints: ["Fast food classic", "Beef patty inside"] },
+                { word: "pizza", hints: ["Round dish", "Topped with cheese"] },
+                { word: "pasta", hints: ["Italian dish", "Usually served with sauce"] },
+                { word: "sandwich", hints: ["Bread with filling", "Can be cold or grilled"] },
+                { word: "taco", hints: ["Mexican dish", "Folded tortilla with filling"] },
+                { word: "burrito", hints: ["Wrapped Mexican food", "Filled with rice, beans, and meat"] },
+                { word: "fries", hints: ["Deep fried", "Potato-based side dish"] },
+                { word: "hot dog", hints: ["Sausage in a bun", "Common street food"] }
+            ],
+            tvShows: [
+                { word: "tarak mehta ka ooltah chashmah", hints: ["Indian sitcom", "Popular comedy show"] },
+                { word: "anupama", hints: ["Indian drama", "Family drama and emotions"] },
+                { word: "ramayan", hints: ["Ancient Indian epic", "Based on Lord Ram"] },
+                { word: "mahabharat", hints: ["Ancient Indian epic", "The story of Kurukshetra war"] },
+                { word: "kbc", hints: ["Indian quiz show", "Hosted by Amitabh Bachchan"] },
+                { word: "friends", hints: ["American sitcom", "Six friends living in New York"] },
+                { word: "breaking bad", hints: ["American crime drama", "A teacher turned drug lord"] },
+                { word: "game of thrones", hints: ["Fantasy drama", "Based on a book series"] },
+                { word: "the office", hints: ["American mockumentary", "Set in Scranton, PA"] }
+            ]
+        };
+
+        let chosenCategory;
+        let chosenWord;
+        let chosenHints;
+        let guessedWord;
+        let remainingLives;
+        let timer;
+        let timeLeft = 55;
+        const hangmanStages = [
+            `
+
+
+
+        `,
+            `
+         O
+
+
+        `,
+            `
+         O
+         |
+
+
+        `,
+            `
+         O
+        /|
+
+
+        `,
+            `
+         O
+        /|\\
+
+
+        `,
+            `
+         O
+        /|\\
+        /
+
+
+        `,
+            `
+         O
+        /|\\
+        / \\
+
+        `
+        ];
+
+        function startGame(category) {
+            chosenCategory = category;
+            const words = categories[category];
+            const randomWordObj = words[Math.floor(Math.random() * words.length)];
+            chosenWord = randomWordObj.word;
+            chosenHints = randomWordObj.hints;
+
+            guessedWord = Array.from(chosenWord).map(c => (c === " " ? " " : "_"));
+            remainingLives = 6;
+            timeLeft = 55;
+
+            document.getElementById("categoryContainer").style.display = "none";
+            document.getElementById("gameContainer").style.display = "block";
+
+            updateHangman();
+            document.getElementById("hangmanState").textContent = `Remaining Lives: ${remainingLives}`;
+            document.getElementById("wordDisplay").textContent = guessedWord.join("");
+            document.getElementById("message").textContent = "";
+            document.getElementById("hintMessage").textContent = "";
+            document.getElementById("restartButton").style.display = "none";
+
+            startTimer();
+            document.addEventListener("keydown", handleKeyPress);
+        }
+
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById("timer").textContent = `Time Left: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    document.getElementById("message").textContent = `Hahaha, you lose noob! The word was "${chosenWord}".`;
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function handleKeyPress(event) {
+            const letter = event.key.toLowerCase();
+            if (/^[a-z]$/.test(letter)) {
+                handleGuess(letter);
+            }
+        }
+
+        function handleGuess(letter) {
+            let found = false;
+            for (let i = 0; i < chosenWord.length; i++) {
+                if (chosenWord[i] === letter && guessedWord[i] === "_") {
+                    guessedWord[i] = letter;
+                    found = true;
+                }
+            }
+
+            document.getElementById("wordDisplay").textContent = guessedWord.join("");
+
+            if (!found) {
+                remainingLives--;
+                updateHangman();
+                document.getElementById("hangmanState").textContent = `Remaining Lives: ${remainingLives}`;
+            }
+
+            checkGameState();
+        }
+
+        function showHint(level) {
+            const hint = level === 1 ? chosenHints[0] : chosenHints[1];
+            document.getElementById("hintMessage").textContent = `Hint: ${hint}`;
+        }
+
+        function updateHangman() {
+            document.getElementById("hangman").textContent = hangmanStages[6 - remainingLives];
+        }
+
+        function checkGameState() {
+            if (guessedWord.join("") === chosenWord) {
+                document.getElementById("message").textContent = "Good job! But get ready for the next one.";
+                clearInterval(timer);
+                endGame();
+            } else if (remainingLives === 0) {
+                document.getElementById("message").textContent = `Hahaha, you lose noob! The word was "${chosenWord}".`;
+                clearInterval(timer);
+                endGame();
+            }
+        }
+
+        function endGame() {
+            document.removeEventListener("keydown", handleKeyPress);
+            document.getElementById("restartButton").style.display = "inline-block";
+        }
+
+        function startNewGame() {
+            document.getElementById("categoryContainer").style.display = "block";
+            document.getElementById("gameContainer").style.display = "none";
+        }
+    </script>
+</body>
+</html>
